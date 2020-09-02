@@ -1,0 +1,116 @@
+//ex 1.4
+// Dup2 prints the count and text of lines that appear more than once 
+// in the input. It reads from stdin or from a list of named files. 
+// Modify dup2 to print the names of all files in which each duplicated line occurs
+
+package main
+
+import (
+	"bufio"
+	"fmt"
+	"os"
+)
+
+func main() {
+	counts := make(map[string]int)
+	files := os.Args[1:]
+	lineToFileName := make(map[string][]string)
+
+	for _, arg := range files {
+		f, err := os.Open(arg)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "dup2: %v\n", err)
+			continue
+		}
+		countLines(f, counts, lineToFileName)
+		f.Close()
+	}
+
+	for line, n := range counts {
+		if n > 1 {
+			fmt.Printf("%d\t%s\t", n, line)
+			fmt.Printf("%v\n", lineToFileName[line])
+		}
+	}
+}
+func countLines(f *os.File, counts map[string]int, lineToFileName map[string][]string) {
+	input := bufio.NewScanner(f)
+	for input.Scan() {
+		counts[input.Text()]++
+		if !checkIfValueInSlice(lineToFileName[input.Text()], f.Name()) {
+			lineToFileName[input.Text()] = append(lineToFileName[input.Text()], f.Name())
+		}
+	}
+	// NOTE: ignoring potential errors from input.Err()
+}
+
+func checkIfValueInSlice(slice []string, val string) bool {
+	for _, item := range slice {
+		if item == val {
+			return true
+		}
+	}
+	return false
+}
+
+
+// ex 1.7
+// Fetch prints the content found at a URL.
+// The function call io.Copy(dst, src) reads from src and writes to dst. 
+// Use it in fetch instead of ioutil.ReadAll to copy the response body
+//	 to os.Stdout without requiring a buffer large enough to hold the entire stream
+
+package main
+import (
+	"fmt"
+	"io"
+	"net/http"
+	"os"
+)
+func main() {
+	for _, url := range os.Args[1:] {
+		resp, err := http.Get(url)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "fetch: %v\n", err)
+			os.Exit(1)
+		}
+		_, err = io.Copy(os.Stdout, resp.Body)
+		resp.Body.Close()
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "fetch: reading %s: %v\n", url, err)
+			os.Exit(1)
+		}
+	}
+}
+
+
+//ex 1.9
+// Modify fetch to also print the HTTP status code, found in resp.Status.
+
+package main
+import (
+	"fmt"
+	"io/ioutil"
+	"net/http"
+	"os"
+)
+func main() {
+	for _, url := range os.Args[1:] {
+		resp, err := http.Get(url)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "fetch: %v\n", err)
+			os.Exit(1)
+		}
+		b, err := ioutil.ReadAll(resp.Body)
+		resp.Body.Close()
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "fetch: reading %s: %v\n", url, err)
+			os.Exit(1)
+		}
+		fmt.Printf("%s\n%s", b, resp.Status)
+	}
+}
+
+
+
+
